@@ -44,6 +44,7 @@ public class GameManager : MonoBehaviour
     private bool isWin = false;
     private bool isLose = false;
     private bool isPause = false;
+    private float dynamicScale = 1f; 
 
     //will read a file from Resources folder
     //and create the matrix with the preloaded data
@@ -81,6 +82,7 @@ public class GameManager : MonoBehaviour
 
     public void Initialize() 
     {
+        CalculateDynamicScale();
         Globals.Apply();
         maxTile = PlayerPrefs.GetInt("MaxTile", 2048);
 
@@ -114,6 +116,7 @@ public class GameManager : MonoBehaviour
 
     private void CreateNewItem(int value = 2, int? row = null, int? column = null)
     {
+        CalculateDynamicScale();
         int randomRow, randomColumn;
 
         if (row == null && column == null)
@@ -136,21 +139,24 @@ public class GameManager : MonoBehaviour
 
         newItem.GO = Instantiate(newGo, GetCellPosition(randomRow, randomColumn), Quaternion.identity) as GameObject;
 
-        newItem.GO.transform.DOScale(new Vector3(1.0f, 1.0f, 1.0f), Globals.AnimationDuration);
+        newItem.GO.transform.DOScale(new Vector3(dynamicScale, dynamicScale, dynamicScale), Globals.AnimationDuration);
 
         matrix[randomRow, randomColumn] = newItem;
     }
 
     private void InitialPositionBackgroundSprites()
     {
+        CalculateDynamicScale();
         for (int row = 0; row < Globals.Rows; row++)
         {
             for (int column = 0; column < Globals.Columns; column++)
             {
-                Instantiate(blankGO, GetCellPosition(row, column), Quaternion.identity);
+                GameObject cell = Instantiate(blankGO, GetCellPosition(row, column), Quaternion.identity);
+                cell.transform.localScale = new Vector3(dynamicScale, dynamicScale, 1f);
             }
         }
     }
+
 
     void Update()
     {
@@ -283,8 +289,13 @@ public class GameManager : MonoBehaviour
         {
             var newGoPosition = GetCellPosition(item.NewRow, item.NewColumn);
 
-            var tween = item.GOToAnimatePosition.transform.positionTo(Globals.AnimationDuration, newGoPosition);
-            tween.autoRemoveOnComplete = true;
+            // var tween = item.GOToAnimatePosition.transform.positionTo(Globals.AnimationDuration, newGoPosition);
+            // tween.autoRemoveOnComplete = true;
+
+            item.GOToAnimatePosition.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration)
+            .OnComplete(() => {
+                    item.GOToAnimatePosition.transform.DOKill();
+                });;;
 
             if (item.GOToAnimateScale != null)
             {
@@ -370,7 +381,7 @@ public class GameManager : MonoBehaviour
                 newGO.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
                 // var appearanceTween = newGO.transform.scaleTo(Globals.AnimationDuration * 0.5f, 1.0f);
                 // appearanceTween.autoRemoveOnComplete = true;
-                newGO.transform.DOScale(1.0f, Globals.AnimationDuration * 0.5f)
+                newGO.transform.DOScale(dynamicScale, Globals.AnimationDuration * 0.5f)
                 .OnComplete(() => {
                     newGO.transform.DOKill();
                 });;;
@@ -429,13 +440,40 @@ public class GameManager : MonoBehaviour
     }
     private Vector3 GetCellPosition(int row, int column)
     {
-        float offsetX = (Globals.Columns - 1) * (1f + distance) / 2f;
-        float offsetY = (Globals.Rows - 1) * (1f + distance) / 2f;
+        float baseStep = 1f + distance; 
+        float scaledStep = baseStep * dynamicScale; 
 
-        float x = (column * (1f + distance)) - offsetX;
-        float y = (row * (1f + distance)) - offsetY;
+        float offsetX = (Globals.Columns - 1) * scaledStep / 2f;
+        float offsetY = (Globals.Rows - 1) * scaledStep / 2f;
+
+        float x = (column * scaledStep) - offsetX;
+        float y = (row * scaledStep) - offsetY;
 
         return this.transform.position + new Vector3(x, y, ZIndex);
+    }
+
+
+    private void CalculateDynamicScale()
+    {
+        float screenHeight = Camera.main.orthographicSize * 2f;
+        float screenWidth = screenHeight * Camera.main.aspect;
+
+        float padding = 0.9f; 
+        float availableWidth = screenWidth * padding;
+        float availableHeight = screenHeight * padding;
+
+        availableHeight -= 4.3f;
+
+        float baseStep = 1f + distance;
+        float baseGridWidth = Globals.Columns * baseStep;
+        float baseGridHeight = Globals.Rows * baseStep;
+
+        float scaleX = availableWidth / baseGridWidth;
+        float scaleY = availableHeight / baseGridHeight;
+
+        dynamicScale = Mathf.Min(scaleX, scaleY);
+        
+        dynamicScale = Mathf.Min(dynamicScale, 1f); 
     }
 
     private bool CheckIsLose()
@@ -463,5 +501,4 @@ public class GameManager : MonoBehaviour
         gameState = GameState.Lose;
         return true;
     }
-
 }
