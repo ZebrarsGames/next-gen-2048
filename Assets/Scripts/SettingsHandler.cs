@@ -13,6 +13,7 @@ public class SettingsHandler : MonoBehaviour
 {
     [Header("Panel")]
     [SerializeField] private GameObject settingsPanel;
+    [SerializeField] private GameObject infoPanel;
 
     [Header("Sliders")]
     [SerializeField] private Slider maxTileSlider;
@@ -72,10 +73,23 @@ public class SettingsHandler : MonoBehaviour
         rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
     }
 
+    public void ShowInfoPanel()
+    {
+        var rect = infoPanel.GetComponent<RectTransform>();
+        rect.localScale = Vector3.zero;
+        infoPanel.SetActive(true);
+        rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
+    }
+
     public void HideSettingsPanel()
     {
         pauseEvent.Invoke(false);
         StartCoroutine(AnimateSettingsPnael());
+    }
+
+    public void HideInfoPanel()
+    {
+        StartCoroutine(AnimateInfoPanel());
     }
 
     IEnumerator AnimateSettingsPnael()
@@ -84,6 +98,14 @@ public class SettingsHandler : MonoBehaviour
         rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
         yield return new WaitForSeconds(0.35f);
         settingsPanel.SetActive(false);
+    }
+
+    IEnumerator AnimateInfoPanel()
+    {
+        var rect = infoPanel.GetComponent<RectTransform>();
+        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
+        yield return new WaitForSeconds(0.35f);
+        infoPanel.SetActive(false);
     }
     
     public void OnMaxTileSlider()
