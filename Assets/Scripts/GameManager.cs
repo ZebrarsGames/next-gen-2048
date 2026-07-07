@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using System.IO.Compression;
+using DG.Tweening;
 
 public enum GameState
 {
@@ -135,7 +136,7 @@ public class GameManager : MonoBehaviour
 
         newItem.GO = Instantiate(newGo, GetCellPosition(randomRow, randomColumn), Quaternion.identity) as GameObject;
 
-        newItem.GO.transform.scaleTo(Globals.AnimationDuration, new Vector3(1.0f, 1.0f, 1.0f));
+        newItem.GO.transform.DOScale(new Vector3(1.0f, 1.0f, 1.0f), Globals.AnimationDuration);
 
         matrix[randomRow, randomColumn] = newItem;
     }
@@ -287,8 +288,12 @@ public class GameManager : MonoBehaviour
 
             if (item.GOToAnimateScale != null)
             {
-                var secondMoveTween = item.GOToAnimateScale.transform.positionTo(Globals.AnimationDuration, newGoPosition);
-                secondMoveTween.autoRemoveOnComplete = true;
+                // var secondMoveTween = item.GOToAnimateScale.transform.positionTo(Globals.AnimationDuration, newGoPosition);
+                // secondMoveTween.autoRemoveOnComplete = true;
+                item.GOToAnimateScale.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration)
+                .OnComplete(() => {
+                    item.GOToAnimateScale.transform.DOKill();
+                });;
 
                 objectsToDestroy.Add(item.GOToAnimateScale);
                 objectsToDestroy.Add(item.GOToAnimatePosition);
@@ -326,6 +331,15 @@ public class GameManager : MonoBehaviour
                     case 2048:
                         onPlayBubbleSound.Invoke(TypeOfSound.coolest);
                         break;
+                    case 4096:
+                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
+                        break;
+                    case 8192:
+                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
+                        break;
+                    case 16384:
+                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
+                        break;
                 }
                 UpdateScore(duplicatedItem.Value);
 
@@ -354,8 +368,12 @@ public class GameManager : MonoBehaviour
                 var newGO = Instantiate(GetGOBasedOnValue(duplicatedItem.Value), newGoPosition, Quaternion.identity) as GameObject;
 
                 newGO.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                var appearanceTween = newGO.transform.scaleTo(Globals.AnimationDuration * 0.5f, 1.0f);
-                appearanceTween.autoRemoveOnComplete = true;
+                // var appearanceTween = newGO.transform.scaleTo(Globals.AnimationDuration * 0.5f, 1.0f);
+                // appearanceTween.autoRemoveOnComplete = true;
+                newGO.transform.DOScale(1.0f, Globals.AnimationDuration * 0.5f)
+                .OnComplete(() => {
+                    newGO.transform.DOKill();
+                });;;
 
                 matrix[item.NewRow, item.NewColumn].GO = newGO;
             }
