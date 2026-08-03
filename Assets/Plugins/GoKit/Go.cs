@@ -36,7 +36,7 @@ public class Go : MonoBehaviour
 			if( !_instance && !_applicationIsQuitting )
 			{
 				// check if there is a GO instance already available in the scene graph
-				_instance = FindFirstObjectByType( typeof( Go ) ) as Go;
+				_instance = FindAnyObjectByType( typeof( Go ) ) as Go;
 
 				// possible Unity bug with FindObjectOfType workaround
 				//_instance = FindObjectOfType( typeof( Go ) ) ?? GameObject.Find( "GoKit" ).GetComponent<Go>() as Go;
