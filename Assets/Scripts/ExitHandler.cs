@@ -11,6 +11,9 @@ public class ExitHandler : MonoBehaviour
     [Header("Time Settings")]
     [SerializeField] private float doubleClickDelay = 0.5f;
 
+    [Header("Other")]
+    [SerializeField] private SoundManager soundManager;
+
     private float lastClickTime = 0f;
 
     void Start()
@@ -44,21 +47,17 @@ public class ExitHandler : MonoBehaviour
     }
     public void ShowExitPanel()
     {
+        soundManager.PlayWarningSound();
         var rect = exitPanel.GetComponent<RectTransform>();
         rect.localScale = Vector3.zero;
         exitPanel.SetActive(true);
-        rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
+        rect.DOScale(new Vector3(1, 1, 1), 0.2f).SetEase(Ease.OutBack);
     }
+
     public void HideExitPanel()
     {
-        StartCoroutine(AnimateExitPanel());
-    }
-    IEnumerator AnimateExitPanel()
-    {
         var rect = exitPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
-        yield return new WaitForSeconds(0.35f);
-        exitPanel.SetActive(false);
+        rect.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).OnComplete(() => exitPanel.SetActive(false));
     }
 
     public void ConfirmExit()

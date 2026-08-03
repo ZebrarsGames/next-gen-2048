@@ -20,6 +20,8 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private AudioClip winSound;
     [SerializeField] private AudioClip loseSound;
     [SerializeField] private AudioClip clickSound;
+    [SerializeField] private AudioClip whooshSound;
+    [SerializeField] private AudioClip warningSound;
 
     [Header("Other")]
     [SerializeField] private AudioSource audioSource;
@@ -59,5 +61,13 @@ public class SoundManager : MonoBehaviour
     public void PlayClickSound()
     {
         audioSource.PlayOneShot(clickSound);
+    }
+    public void PlayWhooshSound()
+    {
+        audioSource.PlayOneShot(whooshSound);
+    }
+    public void PlayWarningSound()
+    {
+        audioSource.PlayOneShot(warningSound);
     }
 }

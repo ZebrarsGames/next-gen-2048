@@ -94,31 +94,17 @@ public class SettingsHandler : MonoBehaviour
         rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
     }
 
-    public void HideSettingsPanel()
+   public void HideSettingsPanel()
     {
         pauseEvent.Invoke(false);
-        StartCoroutine(AnimateSettingsPnael());
+        var rect = settingsPanel.GetComponent<RectTransform>();
+        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => settingsPanel.SetActive(false));
     }
 
     public void HideInfoPanel()
     {
-        StartCoroutine(AnimateInfoPanel());
-    }
-
-    IEnumerator AnimateSettingsPnael()
-    {
-        var rect = settingsPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
-        yield return new WaitForSeconds(0.35f);
-        settingsPanel.SetActive(false);
-    }
-
-    IEnumerator AnimateInfoPanel()
-    {
         var rect = infoPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
-        yield return new WaitForSeconds(0.35f);
-        infoPanel.SetActive(false);
+        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => infoPanel.SetActive(false));
     }
     
     public void OnMaxTileSlider()
