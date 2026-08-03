@@ -295,76 +295,30 @@ public class GameManager : MonoBehaviour
     {
         List<GameObject> objectsToDestroy = new List<GameObject>();
 
-        foreach (var item in movementDetails)
+        foreach(var item in movementDetails)
         {
             var newGoPosition = GetCellPosition(item.NewRow, item.NewColumn);
 
-            // var tween = item.GOToAnimatePosition.transform.positionTo(Globals.AnimationDuration, newGoPosition);
-            // tween.autoRemoveOnComplete = true;
+            item.GOToAnimatePosition.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration);
 
-            item.GOToAnimatePosition.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration)
-            .OnComplete(() => {
-                    item.GOToAnimatePosition.transform.DOKill();
-                });;;
-
-            if (item.GOToAnimateScale != null)
+            if(item.GOToAnimateScale != null)
             {
-                // var secondMoveTween = item.GOToAnimateScale.transform.positionTo(Globals.AnimationDuration, newGoPosition);
-                // secondMoveTween.autoRemoveOnComplete = true;
-                item.GOToAnimateScale.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration)
-                .OnComplete(() => {
-                    item.GOToAnimateScale.transform.DOKill();
-                });;
+                item.GOToAnimateScale.transform.DOLocalMove(newGoPosition, Globals.AnimationDuration);
 
                 objectsToDestroy.Add(item.GOToAnimateScale);
                 objectsToDestroy.Add(item.GOToAnimatePosition);
                 
                 var duplicatedItem = matrix[item.NewRow, item.NewColumn];
-                switch(duplicatedItem.Value)
-                {
-                    case 4:
-                        onPlayBubbleSound.Invoke(TypeOfSound.def);
-                        break;
-                    case 8:
-                        onPlayBubbleSound.Invoke(TypeOfSound.def);
-                        break;
-                    case 16:
-                        onPlayBubbleSound.Invoke(TypeOfSound.def);
-                        break;
-                    case 32:
-                        onPlayBubbleSound.Invoke(TypeOfSound.cool);
-                        break;
-                    case 64:
-                        onPlayBubbleSound.Invoke(TypeOfSound.cool);
-                        break;
-                    case 128:
-                        onPlayBubbleSound.Invoke(TypeOfSound.cooler);
-                        break;
-                    case 256:
-                        onPlayBubbleSound.Invoke(TypeOfSound.cooler);
-                        break;
-                    case 512:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                    case 1024:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                    case 2048:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                    case 4096:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                    case 8192:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                    case 16384:
-                        onPlayBubbleSound.Invoke(TypeOfSound.coolest);
-                        break;
-                }
+                
+                TypeOfSound soundType = TypeOfSound.coolest;
+                if(duplicatedItem.Value <= 16) soundType = TypeOfSound.def;
+                else if(duplicatedItem.Value <= 64) soundType = TypeOfSound.cool;
+                else if(duplicatedItem.Value <= 256) soundType = TypeOfSound.cooler;
+
+                onPlayBubbleSound.Invoke(soundType);
                 UpdateScore(duplicatedItem.Value);
 
-                if (duplicatedItem.Value == maxTile)
+                if(duplicatedItem.Value == maxTile)
                 {
                     gameState = GameState.Won;
                     isWin = true;
@@ -374,27 +328,24 @@ public class GameManager : MonoBehaviour
 
         yield return new WaitForSeconds(Globals.AnimationDuration);
 
-        foreach (var go in objectsToDestroy)
+        foreach(var go in objectsToDestroy)
         {
-            Destroy(go);
+            if(go != null) Destroy(go);
         }
 
-        foreach (var item in movementDetails)
+        foreach(var item in movementDetails)
         {
-            if (item.GOToAnimateScale != null)
+            if(item.GOToAnimateScale != null)
             {
                 var newGoPosition = GetCellPosition(item.NewRow, item.NewColumn);
                 var duplicatedItem = matrix[item.NewRow, item.NewColumn];
 
-                var newGO = Instantiate(GetGOBasedOnValue(duplicatedItem.Value), newGoPosition, Quaternion.identity) as GameObject;
+                GameObject prefab = GetGOBasedOnValue(duplicatedItem.Value);
+                var newGO = Instantiate(prefab, newGoPosition, Quaternion.identity) as GameObject;
 
-                newGO.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                // var appearanceTween = newGO.transform.scaleTo(Globals.AnimationDuration * 0.5f, 1.0f);
-                // appearanceTween.autoRemoveOnComplete = true;
-                newGO.transform.DOScale(dynamicScale, Globals.AnimationDuration * 0.5f)
-                .OnComplete(() => {
-                    newGO.transform.DOKill();
-                });;;
+                newGO.transform.localScale = Vector3.one * 0.01f;
+                
+                newGO.transform.DOScale(dynamicScale, Globals.AnimationDuration * 2f).SetEase(Ease.OutBack);
 
                 matrix[item.NewRow, item.NewColumn].GO = newGO;
             }
@@ -404,7 +355,6 @@ public class GameManager : MonoBehaviour
 
         CreateNewItem(); 
     }
-
 
     private void UpdateScore(int toAdd)
     {
