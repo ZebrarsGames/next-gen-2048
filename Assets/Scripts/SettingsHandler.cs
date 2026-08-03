@@ -25,6 +25,8 @@ public class SettingsHandler : MonoBehaviour
     [SerializeField] private Slider masterVolumeSlider;
     [SerializeField] private Slider sfxVolumeSlider;
     [SerializeField] private Slider bgMusicSlider;
+    [SerializeField] private Slider chanceOfFxTextSlider;
+    [SerializeField] private Slider thresholdComboTextSlider;
 
     [Header("Texts")]
     [SerializeField] private TextMeshProUGUI maxTileText;
@@ -36,6 +38,8 @@ public class SettingsHandler : MonoBehaviour
     [SerializeField] private TextMeshProUGUI sfxVolumeText;
     [SerializeField] private TextMeshProUGUI bgMusicVolumeText;
     [SerializeField] private RectTransform fpsCounterRect;
+    [SerializeField] private TextMeshProUGUI chanceOfFxTextText;
+    [SerializeField] private TextMeshProUGUI thresholdComboTextText;
 
     [Header("Toggles")]
     [SerializeField] private Toggle fpsCounterToggle;
@@ -69,6 +73,8 @@ public class SettingsHandler : MonoBehaviour
         bgMusicSlider.value = PlayerPrefs.GetFloat("BgMusicVolume", 1.0f);
         fpsCounterRect.gameObject.SetActive(PlayerPrefs.GetInt("FPSCounter", 0) != 1);
         fpsCounterToggle.isOn = PlayerPrefs.GetInt("FPSCounter", 0) != 1;
+        chanceOfFxTextSlider.value = PlayerPrefs.GetInt("ChanceOfFxText", 6);
+        thresholdComboTextSlider.value = PlayerPrefs.GetInt("ThresholdComboText", 4);
     }
 
     public void ShowSettingsPanel()
@@ -174,6 +180,18 @@ public class SettingsHandler : MonoBehaviour
         bgMusicVolumeText.text = $"{bgMusicSlider.value:P0}";
     }
 
+    public void OnChanceOfFxTextChanged()
+    {
+        int value = Convert.ToInt32(chanceOfFxTextSlider.value);
+        chanceOfFxTextText.text = value.ToString();
+    }
+
+    public void OnThresholdComboTextChanged()
+    {
+        int value = Convert.ToInt32(thresholdComboTextSlider.value);
+        thresholdComboTextText.text = value.ToString();
+    }
+
     public void OnFPSCounterToggle(bool value)
     {
         PlayerPrefs.SetInt("FPSCounter", value ? 0 : 1);
@@ -199,6 +217,10 @@ public class SettingsHandler : MonoBehaviour
         value = Convert.ToInt32(fpsSlider.value);
         Application.targetFrameRate = value;
         PlayerPrefs.SetInt("FPS", value);
+        value = Convert.ToInt32(chanceOfFxTextSlider.value);
+        PlayerPrefs.SetInt("ChanceOfFxText", value);
+        value = Convert.ToInt32(thresholdComboTextSlider.value);
+        PlayerPrefs.SetInt("ThresholdComboText", value);
         if(animSlider.value == 0.05f) PlayerPrefs.SetFloat("AnimDuration", 0.05f);
         else
         {

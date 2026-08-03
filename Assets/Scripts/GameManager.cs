@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
     public SoundEvent onPlayBubbleSound;
     public int maxTile = 2048;
     [SerializeField] private SoundManager soundManager;
+    [SerializeField] private FXManager fxManager;
     private float distance = 0.109f;
 
     public IInputDetector inputDetector;
@@ -46,6 +47,7 @@ public class GameManager : MonoBehaviour
     private float dynamicScale = 1f; 
     private float swipeThresholdSqr; 
     private Touchscreen activeTouchscreen;
+    private int currentComboCount;
 
     //will read a file from Resources folder
     //and create the matrix with the preloaded data
@@ -206,6 +208,26 @@ public class GameManager : MonoBehaviour
 
                 if (movementDetails != null && movementDetails.Count > 0)
                 {
+                    bool hasMergeThisTurn = false;
+                        
+                    foreach(var detail in movementDetails)
+                    {
+                        if(detail.GOToAnimateScale != null)
+                        {
+                            hasMergeThisTurn = true;
+                            break;
+                        }
+                    }
+
+                    if(hasMergeThisTurn)
+                    {
+                         currentComboCount++;
+                    }
+                    else
+                    {
+                        currentComboCount = 0;
+                    }
+
                     StartCoroutine(AnimateItemsRoutine(movementDetails));
                 }
                 
@@ -318,6 +340,11 @@ public class GameManager : MonoBehaviour
                 onPlayBubbleSound.Invoke(soundType);
                 UpdateScore(duplicatedItem.Value);
 
+                if(fxManager != null)
+                {
+                    fxManager.SpawnPopupText(currentComboCount);
+                }
+
                 if(duplicatedItem.Value == maxTile)
                 {
                     gameState = GameState.Won;
@@ -390,7 +417,9 @@ public class GameManager : MonoBehaviour
     public void RestartGame()
     {
         isWin = false;
+        isLose = false;
         matrix = new ItemArray(Globals.Rows, Globals.Columns);
+        currentComboCount = 0;
         Initialize();
         InitialPositionBackgroundSprites();
     }
