@@ -55,128 +55,99 @@ public class SettingsHandler : MonoBehaviour
     void Awake()
     {
         QualitySettings.vSyncCount = 0; 
-        Application.targetFrameRate = PlayerPrefs.GetInt("FPS", 60);
-        float dbValue = Mathf.Log10(PlayerPrefs.GetFloat("MasterVolume", 1.0f)) * 20;
-        audioMixer.SetFloat(mixerParameterNameMaster, dbValue);
-        dbValue = Mathf.Log10(PlayerPrefs.GetFloat("SFXVolume", 1.0f)) * 20;
-        audioMixer.SetFloat(mixerParameterNameSFX, dbValue);
-        dbValue = Mathf.Log10(PlayerPrefs.GetFloat("BgMusicVolume", 1.0f)) * 20;
-        audioMixer.SetFloat(mixerParameterNameBgMusic, dbValue);
+        
+        int fps = PlayerPrefs.GetInt("FPS", 60);
+        Application.targetFrameRate = fps;
+
+        SetMixerVolume(mixerParameterNameMaster, PlayerPrefs.GetFloat("MasterVolume", 1.0f));
+        SetMixerVolume(mixerParameterNameSFX, PlayerPrefs.GetFloat("SFXVolume", 1.0f));
+        SetMixerVolume(mixerParameterNameBgMusic, PlayerPrefs.GetFloat("BgMusicVolume", 1.0f));
+        
         settingsPanel.SetActive(false);
+
         maxTileSlider.value = PlayerPrefs.GetInt("MaxTile", 2048);
         rowsSlider.value = PlayerPrefs.GetInt("Rows", 4);
         columnsSlider.value = PlayerPrefs.GetInt("Columns", 4);
-        fpsSlider.value = PlayerPrefs.GetInt("FPS", 60);
-        animSlider.value = PlayerPrefs.GetFloat("AnimDuration", 0.05f);
+        fpsSlider.value = fps;
+        animSlider.value = PlayerPrefs.GetFloat("AnimDuration", 0.1f);
         masterVolumeSlider.value = PlayerPrefs.GetFloat("MasterVolume", 1.0f);
         sfxVolumeSlider.value = PlayerPrefs.GetFloat("SFXVolume", 1.0f);
         bgMusicSlider.value = PlayerPrefs.GetFloat("BgMusicVolume", 1.0f);
-        fpsCounterRect.gameObject.SetActive(PlayerPrefs.GetInt("FPSCounter", 0) != 1);
-        fpsCounterToggle.isOn = PlayerPrefs.GetInt("FPSCounter", 0) != 1;
+        
+        bool isFpsCounterActive = PlayerPrefs.GetInt("FPSCounter", 0) != 1;
+        fpsCounterRect.gameObject.SetActive(isFpsCounterActive);
+        fpsCounterToggle.isOn = isFpsCounterActive;
+
         chanceOfFxTextSlider.value = PlayerPrefs.GetInt("ChanceOfFxText", 6);
         thresholdComboTextSlider.value = PlayerPrefs.GetInt("ThresholdComboText", 4);
+        
+        UpdateAllTextsVisually();
     }
 
-    public void ShowSettingsPanel()
+    private void SetMixerVolume(string parameter, float linearVolume)
     {
-        pauseEvent.Invoke(true);
-        var rect = settingsPanel.GetComponent<RectTransform>();
-        rect.localScale = Vector3.zero;
-        settingsPanel.SetActive(true);
-        rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
+        float clampedVolume = Mathf.Clamp(linearVolume, 0.0001f, 1.0f);
+        float dbValue = Mathf.Log10(clampedVolume) * 20;
+        audioMixer.SetFloat(parameter, dbValue);
     }
 
-    public void ShowInfoPanel()
-    {
-        var rect = infoPanel.GetComponent<RectTransform>();
-        rect.localScale = Vector3.zero;
-        infoPanel.SetActive(true);
-        rect.DOScale(new Vector3(1, 1, 1), 0.3f).SetEase(Ease.OutBack);
-    }
+    public void ShowSettingsPanel() => AnimatePanel(settingsPanel, true);
+    public void ShowInfoPanel() => AnimatePanel(infoPanel, true);
+    public void HideSettingsPanel() => AnimatePanel(settingsPanel, false);
+    public void HideInfoPanel() => AnimatePanel(infoPanel, false);
 
-   public void HideSettingsPanel()
+    private void AnimatePanel(GameObject panel, bool show)
     {
-        pauseEvent.Invoke(false);
-        var rect = settingsPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => settingsPanel.SetActive(false));
-    }
-
-    public void HideInfoPanel()
-    {
-        var rect = infoPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => infoPanel.SetActive(false));
+        var rect = panel.GetComponent<RectTransform>();
+        if(show)
+        {
+            pauseEvent.Invoke(true);
+            rect.localScale = Vector3.zero;
+            panel.SetActive(true);
+            rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+        }
+        else
+        {
+            if(panel == settingsPanel) pauseEvent.Invoke(false);
+            rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => panel.SetActive(false));
+        }
     }
     
     public void OnMaxTileSlider()
     {
-        int value = Convert.ToInt32(RoundDownToPowerOfTwo(Convert.ToDouble(maxTileSlider.value)));
-        maxTileText.text = value.ToString();
+        int value = (int)RoundDownToPowerOfTwo(maxTileSlider.value);
+        maxTileText.SetText("{0}", value);
     }
-    public void OnRowsSlider()
-    {
-        int value = Convert.ToInt32(rowsSlider.value);
-        rowsText.text = value.ToString();
-    }
-    public void OnColumnsSlider()
-    {
-        int value = Convert.ToInt32(columnsSlider.value);
-        columnsText.text = value.ToString();
-    }
-    public void OnFPSSlider()
-    {
-        int value = Convert.ToInt32(fpsSlider.value);
-        fpsText.text = value.ToString();
-    }
+    public void OnRowsSlider() => rowsText.SetText("{0}", (int)rowsSlider.value);
+    public void OnColumnsSlider() => columnsText.SetText("{0}", (int)columnsSlider.value);
+    public void OnFPSSlider() => fpsText.SetText("{0}", (int)fpsSlider.value);
+    
     public void OnAnimSlider()
     {
-        if(animSlider.value == 0.05f)
-        {
-            float valueF = animSlider.value;
-            animText.text = valueF.ToString();
-        } else
-        {
-            double valueD = animSlider.value;
-            valueD = Math.Round(valueD / 0.1) * 0.1;
-            float valueF = (float)valueD;
-            animText.text = valueF.ToString();
-        }
+        float value = animSlider.value == 0.05f ? 0.05f : Mathf.Round(animSlider.value / 0.1f) * 0.1f;
+        animText.SetText("{0:2}", value);
     }
 
     public void OnMasterVolumeChanged()
     {
-        float dbValue = Mathf.Log10(masterVolumeSlider.value) * 20;
-        audioMixer.SetFloat(mixerParameterNameMaster, dbValue);
-
-        masterVolumeText.text = $"{masterVolumeSlider.value:P0}";
+        SetMixerVolume(mixerParameterNameMaster, masterVolumeSlider.value);
+        masterVolumeText.SetText("{0}%", Mathf.RoundToInt(masterVolumeSlider.value * 100));
     }
 
     public void OnSFXVolumeChanged()
     {
-        float dbValue = Mathf.Log10(sfxVolumeSlider.value) * 20;
-        audioMixer.SetFloat(mixerParameterNameSFX, dbValue);
-
-        sfxVolumeText.text = $"{sfxVolumeSlider.value:P0}";
+        SetMixerVolume(mixerParameterNameSFX, sfxVolumeSlider.value);
+        sfxVolumeText.SetText("{0}%", Mathf.RoundToInt(sfxVolumeSlider.value * 100));
     }
 
     public void OnBGVolumeChanged()
     {
-        float dbValue = Mathf.Log10(bgMusicSlider.value) * 20;
-        audioMixer.SetFloat(mixerParameterNameBgMusic, dbValue);
-
-        bgMusicVolumeText.text = $"{bgMusicSlider.value:P0}";
+        SetMixerVolume(mixerParameterNameBgMusic, bgMusicSlider.value);
+        bgMusicVolumeText.SetText("{0}%", Mathf.RoundToInt(bgMusicSlider.value * 100));
     }
 
-    public void OnChanceOfFxTextChanged()
-    {
-        int value = Convert.ToInt32(chanceOfFxTextSlider.value);
-        chanceOfFxTextText.text = value.ToString();
-    }
-
-    public void OnThresholdComboTextChanged()
-    {
-        int value = Convert.ToInt32(thresholdComboTextSlider.value);
-        thresholdComboTextText.text = value.ToString();
-    }
+    public void OnChanceOfFxTextChanged() => chanceOfFxTextText.SetText("{0}", (int)chanceOfFxTextSlider.value);
+    public void OnThresholdComboTextChanged() => thresholdComboTextText.SetText("{0}", (int)thresholdComboTextSlider.value);
 
     public void OnFPSCounterToggle(bool value)
     {
@@ -186,43 +157,63 @@ public class SettingsHandler : MonoBehaviour
             fpsCounterRect.localScale = Vector3.zero;
             fpsCounterRect.gameObject.SetActive(true);
             fpsCounterRect.DOScale(Vector3.one, 0.35f).SetEase(Ease.OutBack);
-        } else
+        }
+        else
         {
-            fpsCounterRect.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack).OnComplete(() => fpsCounterRect.gameObject.SetActive(true));
+            fpsCounterRect.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack).OnComplete(() => fpsCounterRect.gameObject.SetActive(false));
         }
     }
 
     public void ApplySettings()
     {
-        int value = Convert.ToInt32(RoundDownToPowerOfTwo(Convert.ToDouble(maxTileSlider.value)));
-        PlayerPrefs.SetInt("MaxTile", value);
-        value = Convert.ToInt32(rowsSlider.value);
-        PlayerPrefs.SetInt("Rows", value);
-        value = Convert.ToInt32(columnsSlider.value);
-        PlayerPrefs.SetInt("Columns", value);
-        value = Convert.ToInt32(fpsSlider.value);
-        Application.targetFrameRate = value;
-        PlayerPrefs.SetInt("FPS", value);
-        value = Convert.ToInt32(chanceOfFxTextSlider.value);
-        PlayerPrefs.SetInt("ChanceOfFxText", value);
-        value = Convert.ToInt32(thresholdComboTextSlider.value);
-        PlayerPrefs.SetInt("ThresholdComboText", value);
-        if(animSlider.value == 0.05f) PlayerPrefs.SetFloat("AnimDuration", 0.05f);
-        else
-        {
-            double valueD = animSlider.value;
-            valueD = Math.Round(valueD / 0.1) * 0.1;
-            float valueF = (float)valueD;
-            PlayerPrefs.SetFloat("AnimDuration", valueF); 
-        }
+        PlayerPrefs.SetInt("MaxTile", (int)RoundDownToPowerOfTwo(maxTileSlider.value));
+        PlayerPrefs.SetInt("Rows", (int)rowsSlider.value);
+        PlayerPrefs.SetInt("Columns", (int)columnsSlider.value);
+        
+        int fpsValue = (int)fpsSlider.value;
+        Application.targetFrameRate = fpsValue;
+        PlayerPrefs.SetInt("FPS", fpsValue);
+
+        PlayerPrefs.SetInt("ChanceOfFxText", (int)chanceOfFxTextSlider.value);
+        PlayerPrefs.SetInt("ThresholdComboText", (int)thresholdComboTextSlider.value);
+
+        float animDuration = animSlider.value == 0.05f ? 0.05f : Mathf.Round(animSlider.value / 0.1f) * 0.1f;
+        PlayerPrefs.SetFloat("AnimDuration", animDuration);
+
         PlayerPrefs.SetFloat("MasterVolume", masterVolumeSlider.value);
         PlayerPrefs.SetFloat("SFXVolume", sfxVolumeSlider.value);
         PlayerPrefs.SetFloat("BgMusicVolume", bgMusicSlider.value);
+
         PlayerPrefs.Save();
     }
-    double RoundDownToPowerOfTwo(double x)
+
+    private int RoundDownToPowerOfTwo(float x)
     {
-        if (x <= 0) return 1;
-        return Math.Pow(2, Math.Floor(Math.Log(x, 2)));
+        if(x < 2) return 2;
+
+        int val = (int)x;
+
+        val |= val >> 1;
+        val |= val >> 2;
+        val |= val >> 4;
+        val |= val >> 8;
+        val |= val >> 16;
+
+        return val - (val >> 1);
+    }
+
+
+    private void UpdateAllTextsVisually()
+    {
+        OnMaxTileSlider();
+        OnRowsSlider();
+        OnColumnsSlider();
+        OnFPSSlider();
+        OnAnimSlider();
+        OnMasterVolumeChanged();
+        OnSFXVolumeChanged();
+        OnBGVolumeChanged();
+        OnChanceOfFxTextChanged();
+        OnThresholdComboTextChanged();
     }
 }
