@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.IO;
-using System.Collections.Generic;
 
 public static class SaveManager
 {
@@ -20,7 +19,7 @@ public static class SaveManager
 
     public static PlayerData GetPlayerData()
     {
-        if (!File.Exists(Application.persistentDataPath + "/save.json"))
+        if(!File.Exists(Application.persistentDataPath + "/save.json"))
         {
             Debug.Log("No save file");
             return new PlayerData();

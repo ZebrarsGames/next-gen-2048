@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using DG.Tweening;
 using NUnit.Framework.Constraints;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.Events;
@@ -26,14 +27,14 @@ public class SettingsHandler : MonoBehaviour
     [SerializeField] private Slider bgMusicSlider;
 
     [Header("Texts")]
-    [SerializeField] private Text maxTileText;
-    [SerializeField] private Text rowsText;
-    [SerializeField] private Text columnsText;
-    [SerializeField] private Text fpsText;
-    [SerializeField] private Text animText;
-    [SerializeField] private Text masterVolumeText;
-    [SerializeField] private Text sfxVolumeText;
-    [SerializeField] private Text bgMusicVolumeText;
+    [SerializeField] private TextMeshProUGUI maxTileText;
+    [SerializeField] private TextMeshProUGUI rowsText;
+    [SerializeField] private TextMeshProUGUI columnsText;
+    [SerializeField] private TextMeshProUGUI fpsText;
+    [SerializeField] private TextMeshProUGUI animText;
+    [SerializeField] private TextMeshProUGUI masterVolumeText;
+    [SerializeField] private TextMeshProUGUI sfxVolumeText;
+    [SerializeField] private TextMeshProUGUI bgMusicVolumeText;
 
     [Header("Other")]
     [SerializeField] private AudioMixer audioMixer;

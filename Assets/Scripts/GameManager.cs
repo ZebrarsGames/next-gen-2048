@@ -4,10 +4,8 @@ using UnityEngine.Events;
 using System.Collections;
 using Assets.Scripts;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine.UI;
-using System.IO.Compression;
 using DG.Tweening;
+using TMPro;
 
 public enum GameState
 {
@@ -15,16 +13,17 @@ public enum GameState
     Won,
     Lose
 }
+[System.Serializable]
+public class WinLoseEvent : UnityEvent<GameState> {}
 
 public class GameManager : MonoBehaviour
 {
     private GameState gameState = GameState.Playing;
     ItemArray matrix;
     public GameObject GO2, GO4, GO8, GO16, GO32, GO64, GO128, GO256, GO512, GO1024, GO2048, GO4096, GO8192, GO16384, blankGO;
-    public Text ScoreText, DebugText, HighScoreText;
-    public UnityEvent winEvent;
+    public TextMeshProUGUI ScoreText, DebugText, HighScoreText;
+    public WinLoseEvent winLoseEvent;
     public UnityEvent duplicatedEvent;
-    public UnityEvent loseEvent;
     public SoundEvent onPlayBubbleSound;
     public int maxTile = 2048;
     private float distance = 0.109f;
@@ -45,6 +44,8 @@ public class GameManager : MonoBehaviour
     private bool isLose = false;
     private bool isPause = false;
     private float dynamicScale = 1f; 
+    private float swipeThresholdSqr; 
+    private Touchscreen activeTouchscreen;
 
     //will read a file from Resources folder
     //and create the matrix with the preloaded data
@@ -66,6 +67,8 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        activeTouchscreen = Touchscreen.current;
+        swipeThresholdSqr = swipeThreshold * swipeThreshold; 
         matrix = new ItemArray(Globals.Rows, Globals.Columns);
         Initialize();
         InitialPositionBackgroundSprites();
@@ -160,70 +163,76 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (gameState == GameState.Playing)
+        if(gameState == GameState.Playing)
         {
-            if(isPause) return;
-            if (isMoving) return; 
-            if (Touchscreen.current != null)
+            if(isPause || isMoving) return;
+
+            if(activeTouchscreen == null)
             {
-                var touch = Touchscreen.current.primaryTouch;
+                activeTouchscreen = Touchscreen.current;
+            }
 
-                if (!touch.press.isPressed && !isSwiping) return;
+            if(activeTouchscreen != null)
+            {
+                var touch = activeTouchscreen.primaryTouch;
 
-                if (touch.press.wasPressedThisFrame)
+                if(touch.press.wasPressedThisFrame)
                 {
                     touchStartPos = touch.position.ReadValue();
                     isSwiping = true;
                 }
-                else if (touch.press.wasReleasedThisFrame && isSwiping)
+                else if(isSwiping && touch.press.wasReleasedThisFrame)
                 {
-                    touchEndPos = touch.position.ReadValue();
-                    DetectSwipe();
+                    Vector2 touchEndPos = touch.position.ReadValue();
+                    DetectSwipe(touchStartPos, touchEndPos);
                     isSwiping = false;
                 }
             }
 
             InputDirection? value = inputDetector.DetectInputDirection();
 
-            if (value.HasValue)
+            if(value.HasValue)
             {
-                List<ItemMovementDetails> movementDetails = new List<ItemMovementDetails>();
+                List<ItemMovementDetails> movementDetails = null;
 
-                if (value == InputDirection.Left)
+                if(value == InputDirection.Left)
                     movementDetails = matrix.MoveHorizontal(HorizontalMovement.Left);
-                else if (value == InputDirection.Right)
+                else if(value == InputDirection.Right)
                     movementDetails = matrix.MoveHorizontal(HorizontalMovement.Right);
-                else if (value == InputDirection.Top)
+                else if(value == InputDirection.Top)
                     movementDetails = matrix.MoveVertical(VerticalMovement.Top);
-                else if (value == InputDirection.Bottom)
+                else if(value == InputDirection.Bottom)
                     movementDetails = matrix.MoveVertical(VerticalMovement.Bottom);
 
-                if (movementDetails.Count > 0)
+                if (movementDetails != null && movementDetails.Count > 0)
                 {
                     StartCoroutine(AnimateItemsRoutine(movementDetails));
                 }
                 
+                #if UNITY_EDITOR
                 string x = Utilities.ShowMatrixOnConsole(matrix);
                 DebugDisplay(x);
+                #endif
             }
-        } else if(gameState == GameState.Won)
+        } 
+        else if(gameState == GameState.Won)
         {
             if(isWin)
             {
-                winEvent.Invoke();
-                Debug.Log("Молодец!");
+                winLoseEvent.Invoke(GameState.Won);
                 isWin = false;
             }
-        } else if(gameState == GameState.Lose)
+        } 
+        else if(gameState == GameState.Lose)
         {
             if(isLose)
             {
-                loseEvent.Invoke();
-                Debug.Log("Поганец");
+                winLoseEvent.Invoke(GameState.Lose);
                 isLose = false;
             }
         }
     }
+
 
     private IEnumerator AnimateItemsRoutine(List<ItemMovementDetails> details)
     {
@@ -254,7 +263,7 @@ public class GameManager : MonoBehaviour
             movementDetails = matrix.MoveVertical(VerticalMovement.Bottom);
                 break;
         }
-        if (movementDetails.Count > 0)
+        if(movementDetails.Count > 0)
                 {
                     StartCoroutine(AnimateItemsRoutine(movementDetails));
                 }
@@ -262,24 +271,24 @@ public class GameManager : MonoBehaviour
                 DebugDisplay(x);
     }
 
-    private void DetectSwipe()
+    private void DetectSwipe(Vector2 start, Vector2 end)
     {
-        Vector2 swipeVector = touchEndPos - touchStartPos;
-        float swipeDistance = swipeVector.magnitude;
+        Vector2 swipeVector = end - start;
+        if(swipeVector.sqrMagnitude < swipeThresholdSqr) return;
 
-        if (swipeDistance < swipeThreshold) return;
+        float absX = Mathf.Abs(swipeVector.x);
+        float absY = Mathf.Abs(swipeVector.y);
 
-        if (Mathf.Abs(swipeVector.x) > Mathf.Abs(swipeVector.y))
+        if(absX > absY)
         {
-            if (swipeVector.x > 0) Move(2);
-            else Move(1);
+            Move(swipeVector.x > 0 ? 2 : 1);
         }
         else
         {
-            if (swipeVector.y > 0) Move(3);
-            else Move(4);
+            Move(swipeVector.y > 0 ? 3 : 4);
         }
     }
+
 
     IEnumerator AnimateItems(IEnumerable<ItemMovementDetails> movementDetails)
     {

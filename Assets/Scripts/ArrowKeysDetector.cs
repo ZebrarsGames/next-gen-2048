@@ -4,51 +4,36 @@ using UnityEngine.InputSystem;
 
 public class ArrowKeysDetector : MonoBehaviour, IInputDetector
 {
-    // Создаем действия для направлений
-    private InputAction moveUp;
-    private InputAction moveDown;
-    private InputAction moveLeft;
-    private InputAction moveRight;
+    private InputAction moveAction;
 
-    void OnEnable()
+    void Awake()
     {
-        // Инициализируем и привязываем клавиши (W/Стрелка вверх и т.д.)
-        moveUp = new InputAction(binding: "<Keyboard>/w");
-        moveUp.AddBinding("<Keyboard>/upArrow");
-
-        moveDown = new InputAction(binding: "<Keyboard>/s");
-        moveDown.AddBinding("<Keyboard>/downArrow");
-
-        moveLeft = new InputAction(binding: "<Keyboard>/a");
-        moveLeft.AddBinding("<Keyboard>/leftArrow");
-
-        moveRight = new InputAction(binding: "<Keyboard>/d");
-        moveRight.AddBinding("<Keyboard>/rightArrow");
-
-        // Обязательно включаем их
-        moveUp.Enable();
-        moveDown.Enable();
-        moveLeft.Enable();
-        moveRight.Enable();
+        moveAction = new InputAction("Move", type: InputActionType.Button);
+        
+        moveAction.AddCompositeBinding("2DVector")
+            .With("Up", "<Keyboard>/w")
+            .With("Up", "<Keyboard>/upArrow")
+            .With("Down", "<Keyboard>/s")
+            .With("Down", "<Keyboard>/downArrow")
+            .With("Left", "<Keyboard>/a")
+            .With("Left", "<Keyboard>/leftArrow")
+            .With("Right", "<Keyboard>/d")
+            .With("Right", "<Keyboard>/rightArrow");
     }
 
-    void OnDisable()
-    {
-        // Освобождаем память при отключении компонента
-        moveUp.Disable();
-        moveDown.Disable();
-        moveLeft.Disable();
-        moveRight.Disable();
-    }
+    void OnEnable() => moveAction.Enable();
+    void OnDisable() => moveAction.Disable();
 
     public InputDirection? DetectInputDirection()
     {
-        // Свойство .triggered срабатывает строго ОДИН РАЗ в момент нажатия (идеально для пошаговых игр/2048)
-        // Если нужно постоянное удержание, замени .triggered на .IsPressed()
-        if (moveUp.triggered) return InputDirection.Top;
-        if (moveDown.triggered) return InputDirection.Bottom;
-        if (moveLeft.triggered) return InputDirection.Left;
-        if (moveRight.triggered) return InputDirection.Right;
+        if(!moveAction.triggered) return null;
+
+        Vector2 input = moveAction.ReadValue<Vector2>();
+
+        if(input.y > 0) return InputDirection.Top;
+        if(input.y < 0) return InputDirection.Bottom;
+        if(input.x < 0) return InputDirection.Left;
+        if(input.x > 0) return InputDirection.Right;
 
         return null;
     }
