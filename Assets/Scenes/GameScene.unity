@@ -3200,7 +3200,7 @@ GameObject:
   - component: {fileID: 481701481}
   - component: {fileID: 481701480}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: MainCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5294,6 +5294,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: b27598649a4b693419074d3631a7e54a, type: 3}
   winSound: {fileID: 8300000, guid: bd04805f8ce792c4d8ab4fad715963fd, type: 3}
   loseSound: {fileID: 8300000, guid: 349a10ff291808d4cb6db5ff66ac970b, type: 3}
+  clickSound: {fileID: 0}
   audioSource: {fileID: 1630089509}
 --- !u!4 &840914068
 Transform:
@@ -5908,6 +5909,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   maxTile: 2048
+  soundManager: {fileID: 840914067}
   swipeThreshold: 50
 --- !u!4 &1017195135
 Transform:

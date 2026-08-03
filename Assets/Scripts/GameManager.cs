@@ -26,6 +26,7 @@ public class GameManager : MonoBehaviour
     public UnityEvent duplicatedEvent;
     public SoundEvent onPlayBubbleSound;
     public int maxTile = 2048;
+    [SerializeField] private SoundManager soundManager;
     private float distance = 0.109f;
 
     public IInputDetector inputDetector;
@@ -37,7 +38,6 @@ public class GameManager : MonoBehaviour
     private float swipeThreshold = 50f;
 
     private Vector2 touchStartPos;
-    private Vector2 touchEndPos;
     private bool isSwiping = false;
     private bool isMoving = false; 
     private bool isWin = false;
@@ -220,6 +220,7 @@ public class GameManager : MonoBehaviour
             if(isWin)
             {
                 winLoseEvent.Invoke(GameState.Won);
+                soundManager.PlayWinSound();
                 isWin = false;
             }
         } 
@@ -227,7 +228,7 @@ public class GameManager : MonoBehaviour
         {
             if(isLose)
             {
-                winLoseEvent.Invoke(GameState.Lose);
+                soundManager.PlayLoseSound();
                 isLose = false;
             }
         }
@@ -492,22 +493,79 @@ public class GameManager : MonoBehaviour
             for(int k = 0; k < Globals.Columns; k++)
             {
                 if(matrix[i, k] == null) return false;
-                if(k + 1 < Globals.Columns)
-                {
-                    var rightNeighbor = matrix[i, k + 1];
-                    if (rightNeighbor == null || matrix[i, k].Value == rightNeighbor.Value) 
-                        return false;
-                }
-
-                if(i + 1 < Globals.Rows)
-                {
-                    var bottomNeighbor = matrix[i + 1, k];
-                    if (bottomNeighbor == null || matrix[i, k].Value == bottomNeighbor.Value) 
-                        return false;
-                }
             }
         }
+
+        for(int i = 0; i < Globals.Rows; i++)
+        {
+            for(int k = 0; k < Globals.Columns; k++)
+            {
+                if(k + 1 < Globals.Columns && matrix[i, k].Value == matrix[i, k + 1].Value) 
+                    return false;
+
+                if(i + 1 < Globals.Rows && matrix[i, k].Value == matrix[i + 1, k].Value) 
+                    return false;
+            }
+        }
+
         gameState = GameState.Lose;
+        
+        AnimateLose();
+        
         return true;
+    }
+    public void AnimateLose()
+    {
+        List<Item> allItems = new List<Item>();
+        
+        for(int i = 0; i < Globals.Rows; i++)
+        {
+            for(int k = 0; k < Globals.Columns; k++)
+            {
+                if(matrix[i, k] != null) allItems.Add(matrix[i, k]);
+            }
+        }
+
+        for(int i = allItems.Count - 1; i > 0; i--)
+        {
+            int rnd = Random.Range(0, i + 1);
+            Item temp = allItems[i];
+            allItems[i] = allItems[rnd];
+            allItems[rnd] = temp;
+        }
+
+        float shrinkDuration = 0.35f;   
+        float delayBetweenTiles = 0.1f; 
+
+        Sequence mainLoseSequence = DOTween.Sequence();
+
+        for(int i = 0; i < allItems.Count; i++)
+        {
+            Item item = allItems[i];
+            if(item == null) continue;
+
+            Transform itemTransform = item.GO.transform;
+            float currentDelay = i * delayBetweenTiles; 
+
+            Sequence tileSequence = DOTween.Sequence();
+
+            tileSequence.AppendInterval(currentDelay) 
+                .Append(itemTransform.DOScale(itemTransform.localScale * 1.15f, shrinkDuration * 0.3f).SetEase(Ease.OutQuad))
+                .Append(itemTransform.DOScale(Vector3.zero, shrinkDuration * 0.7f).SetEase(Ease.InQuad))
+                .OnComplete(() => 
+                {
+                    if(item != null && item.GO.gameObject != null)
+                    {
+                        Destroy(item.GO.gameObject);
+                    }
+                });
+
+            mainLoseSequence.Insert(0, tileSequence);
+        }
+
+        mainLoseSequence.OnComplete(() =>
+        {
+            winLoseEvent.Invoke(GameState.Lose);
+        });
     }
 }
