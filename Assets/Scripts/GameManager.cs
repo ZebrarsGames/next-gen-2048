@@ -514,7 +514,8 @@ public class GameManager : MonoBehaviour
         
         return true;
     }
-    public void AnimateLose()
+
+    private void AnimateLose()
     {
         List<Item> allItems = new List<Item>();
         

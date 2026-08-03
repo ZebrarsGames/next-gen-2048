@@ -35,6 +35,10 @@ public class SettingsHandler : MonoBehaviour
     [SerializeField] private TextMeshProUGUI masterVolumeText;
     [SerializeField] private TextMeshProUGUI sfxVolumeText;
     [SerializeField] private TextMeshProUGUI bgMusicVolumeText;
+    [SerializeField] private RectTransform fpsCounterRect;
+
+    [Header("Toggles")]
+    [SerializeField] private Toggle fpsCounterToggle;
 
     [Header("Other")]
     [SerializeField] private AudioMixer audioMixer;
@@ -44,7 +48,7 @@ public class SettingsHandler : MonoBehaviour
     private const string mixerParameterNameSFX = "SFX";
     private const string mixerParameterNameBgMusic = "BgMusic";
 
-    void Start()
+    void Awake()
     {
         QualitySettings.vSyncCount = 0; 
         Application.targetFrameRate = PlayerPrefs.GetInt("FPS", 60);
@@ -63,6 +67,8 @@ public class SettingsHandler : MonoBehaviour
         masterVolumeSlider.value = PlayerPrefs.GetFloat("MasterVolume", 1.0f);
         sfxVolumeSlider.value = PlayerPrefs.GetFloat("SFXVolume", 1.0f);
         bgMusicSlider.value = PlayerPrefs.GetFloat("BgMusicVolume", 1.0f);
+        fpsCounterRect.gameObject.SetActive(PlayerPrefs.GetInt("FPSCounter", 0) != 1);
+        fpsCounterToggle.isOn = PlayerPrefs.GetInt("FPSCounter", 0) != 1;
     }
 
     public void ShowSettingsPanel()
@@ -166,6 +172,20 @@ public class SettingsHandler : MonoBehaviour
         audioMixer.SetFloat(mixerParameterNameBgMusic, dbValue);
 
         bgMusicVolumeText.text = $"{bgMusicSlider.value:P0}";
+    }
+
+    public void OnFPSCounterToggle(bool value)
+    {
+        PlayerPrefs.SetInt("FPSCounter", value ? 0 : 1);
+        if(value)
+        {
+            fpsCounterRect.localScale = Vector3.zero;
+            fpsCounterRect.gameObject.SetActive(true);
+            fpsCounterRect.DOScale(Vector3.one, 0.35f).SetEase(Ease.OutBack);
+        } else
+        {
+            fpsCounterRect.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack).OnComplete(() => fpsCounterRect.gameObject.SetActive(true));
+        }
     }
 
     public void ApplySettings()
