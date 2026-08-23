@@ -1,16 +1,15 @@
-using Assets.Scripts;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class ArrowKeysDetector : MonoBehaviour, IInputDetector
 {
-    private InputAction moveAction;
+    private InputAction _moveAction;
 
-    void Awake()
+    private void Awake()
     {
-        moveAction = new InputAction("Move", type: InputActionType.Button);
+        _moveAction = new InputAction("Move", type: InputActionType.Button);
         
-        moveAction.AddCompositeBinding("2DVector")
+        _moveAction.AddCompositeBinding("2DVector")
             .With("Up", "<Keyboard>/w")
             .With("Up", "<Keyboard>/upArrow")
             .With("Down", "<Keyboard>/s")
@@ -21,19 +20,24 @@ public class ArrowKeysDetector : MonoBehaviour, IInputDetector
             .With("Right", "<Keyboard>/rightArrow");
     }
 
-    void OnEnable() => moveAction.Enable();
-    void OnDisable() => moveAction.Disable();
+    private void OnEnable() => _moveAction.Enable();
+    private void OnDisable() => _moveAction.Disable();
+
+    private void OnDestroy()
+    {
+        _moveAction?.Dispose();
+    }
 
     public InputDirection? DetectInputDirection()
     {
-        if(!moveAction.triggered) return null;
+        if(!_moveAction.triggered) return null;
 
-        Vector2 input = moveAction.ReadValue<Vector2>();
+        Vector2 input = _moveAction.ReadValue<Vector2>();
 
-        if(input.y > 0) return InputDirection.Top;
-        if(input.y < 0) return InputDirection.Bottom;
-        if(input.x < 0) return InputDirection.Left;
-        if(input.x > 0) return InputDirection.Right;
+        if(input.y > 0f) return InputDirection.Up;
+        if(input.y < 0f) return InputDirection.Down;
+        if(input.x < 0f) return InputDirection.Left;
+        if(input.x > 0f) return InputDirection.Right;
 
         return null;
     }

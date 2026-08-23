@@ -1,28 +1,50 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DG.Tweening;
-using System.Collections;
 
 public class ExitHandler : MonoBehaviour
 {
-    [Header("UI")]
+    [Header("UI Reference")]
     [SerializeField] private GameObject exitPanel;
 
     [Header("Time Settings")]
     [SerializeField] private float doubleClickDelay = 0.5f;
 
-    [Header("Other")]
+    [Header("Dependencies")]
     [SerializeField] private SoundManager soundManager;
 
-    private float lastClickTime = 0f;
+    [Header("Animation Settings")]
+    [SerializeField] private float animDuration = 0.2f;
 
-    void Start()
+    private RectTransform _panelRect;
+    private float _lastClickTime;
+    private TweenCallback _onHideComplete;
+    private Keyboard _keyboard;
+
+    private void Awake()
     {
-        exitPanel.SetActive(false);
+        if(exitPanel != null)
+        {
+            _panelRect = exitPanel.GetComponent<RectTransform>();
+        }
+
+        _onHideComplete = OnHidePanelAnimationComplete;
     }
-    void Update()
+
+    private void Start()
     {
-        if(Keyboard.current.escapeKey.wasPressedThisFrame)
+        if(exitPanel != null)
+        {
+            exitPanel.SetActive(false);
+        }
+    }
+
+    private void Update()
+    {
+        _keyboard = Keyboard.current;
+        if(_keyboard == null) return;
+
+        if(_keyboard.escapeKey.wasPressedThisFrame)
         {
             if(exitPanel.activeSelf)
             {
@@ -34,39 +56,80 @@ public class ExitHandler : MonoBehaviour
             }
         }
     }
+
     private void HandleBackButton()
     {
-        if(Time.time - lastClickTime < doubleClickDelay)
+        float currentTime = Time.time;
+        if(currentTime - _lastClickTime < doubleClickDelay)
         {
             ShowExitPanel();
         }
         else
         {
-            lastClickTime = Time.time;
+            _lastClickTime = currentTime;
         }
     }
+
     public void ShowExitPanel()
     {
-        soundManager.PlayWarningSound();
-        var rect = exitPanel.GetComponent<RectTransform>();
-        rect.localScale = Vector3.zero;
+        if(soundManager != null)
+        {
+            soundManager.PlayWarningSound();
+        }
+
+        if(_panelRect == null) return;
+
+        _panelRect.DOKill();
+
+        _panelRect.localScale = Vector3.zero;
         exitPanel.SetActive(true);
-        rect.DOScale(new Vector3(1, 1, 1), 0.2f).SetEase(Ease.OutBack);
+
+        _panelRect.DOScale(Vector3.one, animDuration)
+                  .SetEase(Ease.OutBack)
+                  .SetUpdate(true);
     }
 
     public void HideExitPanel()
     {
-        var rect = exitPanel.GetComponent<RectTransform>();
-        rect.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).OnComplete(() => exitPanel.SetActive(false));
+        if(_panelRect == null) return;
+
+        _panelRect.DOKill();
+
+        _panelRect.DOScale(Vector3.zero, animDuration)
+                  .SetEase(Ease.InBack)
+                  .SetUpdate(true)
+                  .OnComplete(_onHideComplete);
+    }
+
+    private void OnHidePanelAnimationComplete()
+    {
+        if(exitPanel != null)
+        {
+            exitPanel.SetActive(false);
+        }
     }
 
     public void ConfirmExit()
     {
         PlayerPrefs.Save();
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
+#endif
     }
+
     public void CancelExit()
     {
         HideExitPanel();
+    }
+
+    private void OnDestroy()
+    {
+        if(_panelRect != null)
+        {
+            _panelRect.DOKill();
+        }
     }
 }

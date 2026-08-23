@@ -1,32 +1,55 @@
-using UnityEngine;
+using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 public static class SaveManager
 {
     private static readonly string SavePath = Path.Combine(Application.persistentDataPath, "save.json");
+    
+    private static readonly PlayerData CachedData = new PlayerData();
 
-    public static async void Save(int highScore)
+    public static async Task SaveAsync(int highScore)
     {
-        PlayerData playerData = new PlayerData();
-        playerData.highScore = highScore;
-        
-        playerData.playerSettings.Add(new PlayerSettingItem("MaxTile", PlayerPrefs.GetInt("MaxTile", 2048).ToString()));
-        playerData.playerSettings.Add(new PlayerSettingItem("Rows", PlayerPrefs.GetInt("Rows", 4).ToString()));
-        playerData.playerSettings.Add(new PlayerSettingItem("Columns", PlayerPrefs.GetInt("Columns", 4).ToString()));
-        
-        float animDuration = PlayerPrefs.GetFloat("AnimDuration", 0.05f);
-        playerData.playerSettings.Add(new PlayerSettingItem("AnimDuration", animDuration.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        CachedData.highScore = highScore;
+        CachedData.maxTile = PlayerPrefs.GetInt("MaxTile", 2048);
+        CachedData.rows = PlayerPrefs.GetInt("Rows", 4);
+        CachedData.columns = PlayerPrefs.GetInt("Columns", 4);
+        CachedData.animDuration = PlayerPrefs.GetFloat("AnimDuration", 0.05f);
 
-        string json = JsonUtility.ToJson(playerData);
+        string json = JsonUtility.ToJson(CachedData);
 
         try
         {
-            await Task.Run(() => File.WriteAllText(SavePath, json));
+            using(var writer = new StreamWriter(SavePath, false, Encoding.UTF8))
+            {
+                await writer.WriteAsync(json);
+            }
         }
-        catch(System.Exception e)
+        catch(Exception e)
         {
-            Debug.LogError($"Ошибка при сохранении файла: {e.Message}");
+            Debug.LogError($"[SaveManager] Ошибка при сохранении файла: {e.Message}");
+        }
+    }
+
+    public static void SaveSync(int highScore)
+    {
+        CachedData.highScore = highScore;
+        CachedData.maxTile = PlayerPrefs.GetInt("MaxTile", 2048);
+        CachedData.rows = PlayerPrefs.GetInt("Rows", 4);
+        CachedData.columns = PlayerPrefs.GetInt("Columns", 4);
+        CachedData.animDuration = PlayerPrefs.GetFloat("AnimDuration", 0.05f);
+
+        string json = JsonUtility.ToJson(CachedData);
+
+        try
+        {
+            File.WriteAllText(SavePath, json, Encoding.UTF8);
+        }
+        catch(Exception e)
+        {
+            Debug.LogError($"[SaveManager] Ошибка при синхронном сохранении: {e.Message}");
         }
     }
 
@@ -36,16 +59,15 @@ public static class SaveManager
         {
             if(!File.Exists(SavePath))
             {
-                Debug.Log("Файл сохранения отсутствует. Возвращаем новые данные.");
                 return new PlayerData();
             }
 
-            string json = File.ReadAllText(SavePath);
-            return JsonUtility.FromJson<PlayerData>(json);
+            string json = File.ReadAllText(SavePath, Encoding.UTF8);
+            return JsonUtility.FromJson<PlayerData>(json) ?? new PlayerData();
         }
-        catch(System.Exception e)
+        catch(Exception e)
         {
-            Debug.LogError($"Ошибка при чтении файла сохранения (файл поврежден): {e.Message}");
+            Debug.LogError($"[SaveManager] Файл сохранения поврежден или недоступен: {e.Message}");
             return new PlayerData();
         }
     }
@@ -57,16 +79,12 @@ public static class SaveManager
             if(File.Exists(SavePath))
             {
                 File.Delete(SavePath);
-                Debug.Log("Файл сохранения успешно удален.");
-            }
-            else
-            {
-                Debug.Log("Попытка удаления не удалась: файл сохранения не существует.");
+                Debug.Log("[SaveManager] Файл сохранения удален.");
             }
         }
-        catch(System.Exception e)
+        catch(Exception e)
         {
-            Debug.LogError($"Критическая ошибка при попытке удалить файл: {e.Message}");
+            Debug.LogError($"[SaveManager] Ошибка при удалении файла: {e.Message}");
         }
     }
 }

@@ -8,12 +8,13 @@ public class FPSCounter : MonoBehaviour
     [SerializeField] private TextMeshProUGUI fpsText;
     [SerializeField] private float updateInterval = 0.5f;
 
-    private float accum = 0f;
-    private int frames = 0;
+    private float _accum;
+    private int _frames;
+    private int _lastFps = -1;
 
-    private readonly char[] displayBuffer = new char[] { 'F', 'P', 'S', ':', ' ', ' ', ' ', ' ' };
+    private readonly char[] _displayBuffer = new char[] { 'F', 'P', 'S', ':', ' ', '0', '0', '0' };
 
-    void Awake()
+    private void Awake()
     {
         if(fpsText == null)
         {
@@ -36,37 +37,38 @@ public class FPSCounter : MonoBehaviour
 
     private void ResetCounters()
     {
-        accum = 0f;
-        frames = 0;
+        _accum = 0f;
+        _frames = 0;
+        _lastFps = -1;
     }
 
-    void Update()
+    private void Update()
     {
-        frames++;
-        accum += Time.unscaledDeltaTime;
+        _frames++;
+        _accum += Time.unscaledDeltaTime;
 
-        if(accum >= updateInterval)
+        if(_accum >= updateInterval)
         {
-            if(accum > 0f)
+            int currentFps = Mathf.RoundToInt(_frames / _accum);
+
+            if(currentFps != _lastFps)
             {
-                int fps = Mathf.RoundToInt(frames / accum);
-                UpdateFPSTextNonAlloc(fps);
+                _lastFps = currentFps;
+                UpdateFPSText(currentFps);
             }
 
-            if(accum >= updateInterval * 2)
+            _accum -= updateInterval;
+            
+            if(_accum > updateInterval)
             {
-                accum = 0f;
-            }
-            else
-            {
-                accum -= updateInterval;
+                _accum = 0f;
             }
 
-            frames = 0;
+            _frames = 0;
         }
     }
 
-    private void UpdateFPSTextNonAlloc(int fps)
+    private void UpdateFPSText(int fps)
     {
         fps = Mathf.Clamp(fps, 0, 999);
 
@@ -74,10 +76,20 @@ public class FPSCounter : MonoBehaviour
         int tens = (fps / 10) % 10;
         int ones = fps % 10;
 
-        displayBuffer[5] = hundreds > 0 ? (char)('0' + hundreds) : ' ';
-        displayBuffer[6] = (hundreds > 0 || tens > 0) ? (char)('0' + tens) : ' ';
-        displayBuffer[7] = (char)('0' + ones);
+        int bufferIndex = 5;
 
-        fpsText.SetText(displayBuffer, 0, displayBuffer.Length);
+        if(hundreds > 0)
+        {
+            _displayBuffer[bufferIndex++] = (char)('0' + hundreds);
+            _displayBuffer[bufferIndex++] = (char)('0' + tens);
+        }
+        else if(tens > 0)
+        {
+            _displayBuffer[bufferIndex++] = (char)('0' + tens);
+        }
+
+        _displayBuffer[bufferIndex++] = (char)('0' + ones);
+
+        fpsText.SetText(_displayBuffer, 0, bufferIndex);
     }
 }

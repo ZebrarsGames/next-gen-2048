@@ -1,62 +1,64 @@
 using UnityEngine;
-using System;
-using Assets.Scripts;
-
-public enum State
-{
-    SwipeNotStarted,
-    SwipeStarted
-}
+using UnityEngine.InputSystem;
 
 public class SwipeDetector : MonoBehaviour, IInputDetector
 {
+    private enum SwipeState
+    {
+        NotStarted,
+        Started
+    }
 
-    private State state = State.SwipeNotStarted;
-    private Vector2 startPoint;
-    private DateTime timeSwipeStarted;
-    private TimeSpan maxSwipeDuration = TimeSpan.FromSeconds(1);
-    private TimeSpan minSwipeDuration = TimeSpan.FromMilliseconds(100);
+    [Header("Settings")]
+    [SerializeField] private float minSwipeDistance = 50f;
+    [SerializeField] private float minSwipeDuration = 0.05f;
+    [SerializeField] private float maxSwipeDuration = 0.8f;
+
+    private SwipeState _state = SwipeState.NotStarted;
+    private Vector2 _startPoint;
+    private float _timeSwipeStarted;
 
     public InputDirection? DetectInputDirection()
     {
-        if (state == State.SwipeNotStarted)
+        Pointer pointer = Pointer.current;
+        if(pointer == null) return null;
+
+        if(_state == SwipeState.NotStarted)
         {
-            if (Input.GetMouseButtonDown(0))
+            if(pointer.press.wasPressedThisFrame)
             {
-                timeSwipeStarted = DateTime.Now;
-                state = State.SwipeStarted;
-                startPoint = Input.mousePosition;
+                _timeSwipeStarted = Time.unscaledTime;
+                _startPoint = pointer.position.ReadValue();
+                _state = SwipeState.Started;
             }
         }
-        else if (state == State.SwipeStarted)
+        else if(_state == SwipeState.Started)
         {
-            if (Input.GetMouseButtonUp(0))
+            if(pointer.press.wasReleasedThisFrame)
             {
-                TimeSpan timeDifference = DateTime.Now - timeSwipeStarted;
-                if (timeDifference <= maxSwipeDuration && timeDifference >= minSwipeDuration)
+                _state = SwipeState.NotStarted;
+
+                float duration = Time.unscaledTime - _timeSwipeStarted;
+                if(duration < minSwipeDuration || duration > maxSwipeDuration)
+                    return null;
+
+                Vector2 currentPoint = pointer.position.ReadValue();
+                Vector2 swipeDelta = currentPoint - _startPoint;
+
+                if(swipeDelta.sqrMagnitude < minSwipeDistance * minSwipeDistance)
+                    return null;
+
+                if(Mathf.Abs(swipeDelta.x) > Mathf.Abs(swipeDelta.y))
                 {
-                    Vector2 mousePosition = Input.mousePosition;
-                    Vector2 differenceVector = mousePosition - startPoint;
-                    float angle = Vector2.Angle(differenceVector, Vector2.right);
-                    Vector3 cross = Vector3.Cross(differenceVector, Vector2.right);
-
-                    if (cross.z > 0)
-                        angle = 360 - angle;
-
-                    state = State.SwipeNotStarted;
-
-                    if ((angle >= 315 && angle < 360) || (angle >= 0 && angle <= 45))
-                        return InputDirection.Right;
-                    else if (angle > 45 && angle <= 135)
-                        return InputDirection.Top;
-                    else if (angle > 135 && angle <= 225)
-                        return InputDirection.Left;
-                    else
-                        return InputDirection.Bottom;
+                    return swipeDelta.x > 0f ? InputDirection.Right : InputDirection.Left;
+                }
+                else
+                {
+                    return swipeDelta.y > 0f ? InputDirection.Up : InputDirection.Down;
                 }
             }
         }
+
         return null;
     }
-
 }

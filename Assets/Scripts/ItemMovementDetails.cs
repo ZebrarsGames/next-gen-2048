@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
 
-namespace Assets.Scripts
-{
     public class ItemMovementDetails
     {
         public GameObject GOToAnimateScale { get; set; }
@@ -20,6 +18,3 @@ namespace Assets.Scripts
         }
 
     }
-
-
-}

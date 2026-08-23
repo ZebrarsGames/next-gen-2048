@@ -1,58 +1,77 @@
 using System.Collections;
-using DG.Tweening;
 using UnityEngine;
 using TMPro;
+using DG.Tweening;
 
 public class WinHandler : MonoBehaviour
 {
-    [Header("UI")]
+    [Header("UI elements")]
     [SerializeField] private GameObject winLosePanel;
     [SerializeField] private TextMeshProUGUI winLoseText;
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI bestScoreText;
 
-    [Header("Other")]
+    [Header("References")]
     [SerializeField] private GameManager gameManager;
 
     private RectTransform winLoseRect;
 
-    void Awake()
+    private void Awake()
     {
-        winLoseRect = winLosePanel.GetComponent<RectTransform>();
+        if(winLosePanel != null)
+        {
+            winLoseRect = winLosePanel.GetComponent<RectTransform>();
+        }
     }
-    void Start()
+
+    private void Start()
     {
-        winLosePanel.SetActive(false);
+        if(winLosePanel != null)
+        {
+            winLosePanel.SetActive(false);
+        }
     }
+
     public void OnWinLose(GameState gameState)
     {
-        if(gameState == GameState.Won) winLoseText.text = "You Win!";
-        else if(gameState == GameState.Lose) winLoseText.text = "You Lose!";
-        if(gameManager.GetScore() > SaveManager.GetPlayerData().highScore)
+        winLoseText.text = gameState == GameState.Won ? "You Win!" : "You Lose!";
+
+        int currentScore = gameManager.GetScore();
+        int savedHighScore = SaveManager.GetPlayerData().highScore;
+
+        if(currentScore > savedHighScore)
         {
-            SaveManager.Save(gameManager.GetScore());
-            scoreText.text = gameManager.ScoreText.text;
-            bestScoreText.text = "High score: " + gameManager.GetScore();
-        } else if(gameManager.GetScore() < SaveManager.GetPlayerData().highScore)
-        {
-            SaveManager.Save(SaveManager.GetPlayerData().highScore);
-            scoreText.text = gameManager.ScoreText.text;
-            bestScoreText.text = "High score: " + SaveManager.GetPlayerData().highScore;
+            savedHighScore = currentScore;
+            SaveManager.SaveSync(savedHighScore);
         }
+
+        scoreText.SetText(gameManager.ScoreText.text);
+        bestScoreText.SetText($"High score: {savedHighScore}");
+
+        winLoseRect.DOKill();
         winLoseRect.localScale = Vector3.zero;
         winLosePanel.SetActive(true);
-        winLoseRect.DOScale(new Vector3(1, 1, 1), 1f).SetEase(Ease.OutBack);
+        winLoseRect.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
     }
 
     public void Restart()
     {
-        StartCoroutine(HideWinPanel());
+        StartCoroutine(HideWinPanelAndRestart());
+    }
+
+    private IEnumerator HideWinPanelAndRestart()
+    {
+        winLoseRect.DOKill();
+        winLoseRect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
+        
+        yield return new WaitForSeconds(0.3f);
+
+        winLosePanel.SetActive(false);
         gameManager.RestartGame();
     }
-    IEnumerator HideWinPanel()
+
+    private void OnDestroy()
     {
-        winLoseRect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack);
-        yield return new WaitForSeconds(0.35f);
-        winLosePanel.SetActive(false);
+        winLoseRect?.DOKill();
     }
 }

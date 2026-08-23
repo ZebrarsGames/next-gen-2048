@@ -1,47 +1,65 @@
 using System;
+using System.Text;
 using UnityEngine;
 
 public static class Utilities
 {
-    public static string[,] GetMatrixFromResourcesData()
+    private static readonly StringBuilder MatrixBuilder = new StringBuilder(256);
+
+    public static string[,] GetMatrixFromResourcesData(int rows, int columns)
     {
-        string[,] shapes = new string[Globals.Rows, Globals.Columns];
+        string[,] shapes = new string[rows, columns];
 
-        TextAsset txt = Resources.Load("debugLevel") as TextAsset;
-        string level = txt.text;
+        TextAsset txt = Resources.Load<TextAsset>("debugLevel");
+        if(txt == null)
+        {
+            Debug.LogError("[Utilities] Файл 'debugLevel' не найден в Resources!");
+            return shapes;
+        }
 
-        string[] lines = level.Split(new string[] { Environment.NewLine, "\n" }, StringSplitOptions.RemoveEmptyEntries);
-        for (int row = 0; row < Globals.Rows; row++)
+        string text = txt.text.Replace("\r", string.Empty);
+        string[] lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        for(int row = 0; row < rows && row < lines.Length; row++)
         {
             string[] items = lines[row].Split('|');
-            for (int column = 0; column < Globals.Columns; column++)
+            for(int column = 0; column < columns && column < items.Length; column++)
             {
                 shapes[row, column] = items[column];
             }
         }
-        return shapes;
 
+        return shapes;
     }
 
     public static string ShowMatrixOnConsole(ItemArray matrix)
     {
-        string x = string.Empty;
-        for (int row = Globals.Rows - 1; row >= 0; row--)
+        if(matrix == null) return string.Empty;
+
+        MatrixBuilder.Clear();
+
+        int rows = matrix.Rows;
+        int columns = matrix.Columns;
+
+        for(int row = rows - 1; row >= 0; row--)
         {
-            for (int column = 0; column < Globals.Columns; column++)
+            for(int column = 0; column < columns; column++)
             {
-                if (matrix[row, column] != null)
+                Item item = matrix[row, column];
+                if(item != null)
                 {
-                    x += matrix[row, column].Value + "|";
+                    MatrixBuilder.Append(item.Value).Append('|');
                 }
                 else
                 {
-                    x += "X" + "|";
+                    MatrixBuilder.Append("X|");
                 }
             }
-            x += Environment.NewLine;
+            MatrixBuilder.AppendLine();
         }
-        Debug.Log(x);
-        return x;
+
+        string result = MatrixBuilder.ToString();
+        Debug.Log(result);
+        return result;
     }
 }

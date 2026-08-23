@@ -1,12 +1,12 @@
-﻿namespace Assets.Scripts
+﻿public interface IInputDetector
 {
-    public interface IInputDetector
-    {
-        InputDirection? DetectInputDirection();
-    }
+    InputDirection? DetectInputDirection();
+}
 
-    public enum InputDirection
-    {
-        Left, Right, Top, Bottom
-    }
+public enum InputDirection
+{
+    Left,
+    Right,
+    Up, 
+    Down 
 }

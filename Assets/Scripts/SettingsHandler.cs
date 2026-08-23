@@ -1,15 +1,13 @@
-using System;
-using System.Collections;
-using DG.Tweening;
-using NUnit.Framework.Constraints;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using TMPro;
+using DG.Tweening;
 
 [System.Serializable]
 public class PauseEvent : UnityEvent<bool> { }
+
 public class SettingsHandler : MonoBehaviour
 {
     [Header("Panel")]
@@ -48,22 +46,47 @@ public class SettingsHandler : MonoBehaviour
     [SerializeField] private AudioMixer audioMixer;
     [SerializeField] private PauseEvent pauseEvent;
 
-    private const string mixerParameterNameMaster = "Master";
-    private const string mixerParameterNameSFX = "SFX";
-    private const string mixerParameterNameBgMusic = "BgMusic";
+    private const string MixerParameterMaster = "Master";
+    private const string MixerParameterSFX = "SFX";
+    private const string MixerParameterBgMusic = "BgMusic";
 
-    void Awake()
+    private RectTransform settingsPanelRect;
+    private RectTransform infoPanelRect;
+
+    private TweenCallback onSettingsHideComplete;
+    private TweenCallback onInfoHideComplete;
+    private TweenCallback onFpsCounterHideComplete;
+
+    private void Awake()
     {
-        QualitySettings.vSyncCount = 0; 
-        
+        QualitySettings.vSyncCount = 0;
+
+        if(settingsPanel != null)
+        {
+            settingsPanelRect = settingsPanel.GetComponent<RectTransform>();
+            onSettingsHideComplete = OnSettingsHideFinished;
+        }
+
+        if(infoPanel != null)
+        {
+            infoPanelRect = infoPanel.GetComponent<RectTransform>();
+            onInfoHideComplete = OnInfoHideFinished;
+        }
+
+        if(fpsCounterRect != null)
+        {
+            onFpsCounterHideComplete = OnFpsCounterHideFinished;
+        }
+
         int fps = PlayerPrefs.GetInt("FPS", 60);
         Application.targetFrameRate = fps;
 
-        SetMixerVolume(mixerParameterNameMaster, PlayerPrefs.GetFloat("MasterVolume", 1.0f));
-        SetMixerVolume(mixerParameterNameSFX, PlayerPrefs.GetFloat("SFXVolume", 1.0f));
-        SetMixerVolume(mixerParameterNameBgMusic, PlayerPrefs.GetFloat("BgMusicVolume", 1.0f));
-        
+        SetMixerVolume(MixerParameterMaster, PlayerPrefs.GetFloat("MasterVolume", 1.0f));
+        SetMixerVolume(MixerParameterSFX, PlayerPrefs.GetFloat("SFXVolume", 1.0f));
+        SetMixerVolume(MixerParameterBgMusic, PlayerPrefs.GetFloat("BgMusicVolume", 1.0f));
+
         settingsPanel.SetActive(false);
+        infoPanel.SetActive(false);
 
         maxTileSlider.value = PlayerPrefs.GetInt("MaxTile", 2048);
         rowsSlider.value = PlayerPrefs.GetInt("Rows", 4);
@@ -73,77 +96,90 @@ public class SettingsHandler : MonoBehaviour
         masterVolumeSlider.value = PlayerPrefs.GetFloat("MasterVolume", 1.0f);
         sfxVolumeSlider.value = PlayerPrefs.GetFloat("SFXVolume", 1.0f);
         bgMusicSlider.value = PlayerPrefs.GetFloat("BgMusicVolume", 1.0f);
-        
+
         bool isFpsCounterActive = PlayerPrefs.GetInt("FPSCounter", 0) != 1;
         fpsCounterRect.gameObject.SetActive(isFpsCounterActive);
         fpsCounterToggle.isOn = isFpsCounterActive;
 
         chanceOfFxTextSlider.value = PlayerPrefs.GetInt("ChanceOfFxText", 6);
         thresholdComboTextSlider.value = PlayerPrefs.GetInt("ThresholdComboText", 4);
-        
+
         UpdateAllTextsVisually();
     }
 
     private void SetMixerVolume(string parameter, float linearVolume)
     {
         float clampedVolume = Mathf.Clamp(linearVolume, 0.0001f, 1.0f);
-        float dbValue = Mathf.Log10(clampedVolume) * 20;
+        float dbValue = Mathf.Log10(clampedVolume) * 20f;
         audioMixer.SetFloat(parameter, dbValue);
     }
 
-    public void ShowSettingsPanel() => AnimatePanel(settingsPanel, true);
-    public void ShowInfoPanel() => AnimatePanel(infoPanel, true);
-    public void HideSettingsPanel() => AnimatePanel(settingsPanel, false);
-    public void HideInfoPanel() => AnimatePanel(infoPanel, false);
+    public void ShowSettingsPanel() => AnimatePanel(settingsPanel, settingsPanelRect, true, onSettingsHideComplete);
+    public void ShowInfoPanel() => AnimatePanel(infoPanel, infoPanelRect, true, onInfoHideComplete);
+    public void HideSettingsPanel() => AnimatePanel(settingsPanel, settingsPanelRect, false, onSettingsHideComplete);
+    public void HideInfoPanel() => AnimatePanel(infoPanel, infoPanelRect, false, onInfoHideComplete);
 
-    private void AnimatePanel(GameObject panel, bool show)
+    private void AnimatePanel(GameObject panel, RectTransform rect, bool show, TweenCallback onCompleteCallback)
     {
-        var rect = panel.GetComponent<RectTransform>();
+        if(panel == null || rect == null) return;
+
+        rect.DOKill();
+
         if(show)
         {
-            pauseEvent.Invoke(true);
+            if(panel == settingsPanel) pauseEvent?.Invoke(true);
             rect.localScale = Vector3.zero;
             panel.SetActive(true);
             rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
         }
         else
         {
-            if(panel == settingsPanel) pauseEvent.Invoke(false);
-            rect.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => panel.SetActive(false));
+            if(panel == settingsPanel) pauseEvent?.Invoke(false);
+            rect.DOScale(Vector3.zero, 0.3f)
+                .SetEase(Ease.InBack)
+                .OnComplete(onCompleteCallback);
         }
     }
-    
+
+    private void OnSettingsHideFinished() => settingsPanel.SetActive(false);
+    private void OnInfoHideFinished() => infoPanel.SetActive(false);
+
     public void OnMaxTileSlider()
     {
-        int value = (int)RoundDownToPowerOfTwo(maxTileSlider.value);
+        int value = RoundDownToPowerOfTwo((int)maxTileSlider.value);
         maxTileText.SetText("{0}", value);
     }
+
     public void OnRowsSlider() => rowsText.SetText("{0}", (int)rowsSlider.value);
     public void OnColumnsSlider() => columnsText.SetText("{0}", (int)columnsSlider.value);
     public void OnFPSSlider() => fpsText.SetText("{0}", (int)fpsSlider.value);
-    
+
     public void OnAnimSlider()
     {
-        float value = animSlider.value == 0.05f ? 0.05f : Mathf.Round(animSlider.value / 0.1f) * 0.1f;
-        animText.SetText("{0:2}", value);
+        float rawValue = animSlider.value;
+        float value = rawValue == 0.05f ? 0.05f : Mathf.Round(rawValue * 10f) * 0.1f;
+        animText.SetText("{0:0.00}", value);
     }
 
     public void OnMasterVolumeChanged()
     {
-        SetMixerVolume(mixerParameterNameMaster, masterVolumeSlider.value);
-        masterVolumeText.SetText("{0}%", Mathf.RoundToInt(masterVolumeSlider.value * 100));
+        float val = masterVolumeSlider.value;
+        SetMixerVolume(MixerParameterMaster, val);
+        masterVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnSFXVolumeChanged()
     {
-        SetMixerVolume(mixerParameterNameSFX, sfxVolumeSlider.value);
-        sfxVolumeText.SetText("{0}%", Mathf.RoundToInt(sfxVolumeSlider.value * 100));
+        float val = sfxVolumeSlider.value;
+        SetMixerVolume(MixerParameterSFX, val);
+        sfxVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnBGVolumeChanged()
     {
-        SetMixerVolume(mixerParameterNameBgMusic, bgMusicSlider.value);
-        bgMusicVolumeText.SetText("{0}%", Mathf.RoundToInt(bgMusicSlider.value * 100));
+        float val = bgMusicSlider.value;
+        SetMixerVolume(MixerParameterBgMusic, val);
+        bgMusicVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnChanceOfFxTextChanged() => chanceOfFxTextText.SetText("{0}", (int)chanceOfFxTextSlider.value);
@@ -152,6 +188,8 @@ public class SettingsHandler : MonoBehaviour
     public void OnFPSCounterToggle(bool value)
     {
         PlayerPrefs.SetInt("FPSCounter", value ? 0 : 1);
+        fpsCounterRect.DOKill();
+
         if(value)
         {
             fpsCounterRect.localScale = Vector3.zero;
@@ -160,16 +198,20 @@ public class SettingsHandler : MonoBehaviour
         }
         else
         {
-            fpsCounterRect.DOScale(Vector3.zero, 0.35f).SetEase(Ease.InBack).OnComplete(() => fpsCounterRect.gameObject.SetActive(false));
+            fpsCounterRect.DOScale(Vector3.zero, 0.35f)
+                .SetEase(Ease.InBack)
+                .OnComplete(onFpsCounterHideComplete);
         }
     }
 
+    private void OnFpsCounterHideFinished() => fpsCounterRect.gameObject.SetActive(false);
+
     public void ApplySettings()
     {
-        PlayerPrefs.SetInt("MaxTile", (int)RoundDownToPowerOfTwo(maxTileSlider.value));
+        PlayerPrefs.SetInt("MaxTile", RoundDownToPowerOfTwo((int)maxTileSlider.value));
         PlayerPrefs.SetInt("Rows", (int)rowsSlider.value);
         PlayerPrefs.SetInt("Columns", (int)columnsSlider.value);
-        
+
         int fpsValue = (int)fpsSlider.value;
         Application.targetFrameRate = fpsValue;
         PlayerPrefs.SetInt("FPS", fpsValue);
@@ -177,7 +219,8 @@ public class SettingsHandler : MonoBehaviour
         PlayerPrefs.SetInt("ChanceOfFxText", (int)chanceOfFxTextSlider.value);
         PlayerPrefs.SetInt("ThresholdComboText", (int)thresholdComboTextSlider.value);
 
-        float animDuration = animSlider.value == 0.05f ? 0.05f : Mathf.Round(animSlider.value / 0.1f) * 0.1f;
+        float animRaw = animSlider.value;
+        float animDuration = animRaw == 0.05f ? 0.05f : Mathf.Round(animRaw * 10f) * 0.1f;
         PlayerPrefs.SetFloat("AnimDuration", animDuration);
 
         PlayerPrefs.SetFloat("MasterVolume", masterVolumeSlider.value);
@@ -187,11 +230,9 @@ public class SettingsHandler : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private int RoundDownToPowerOfTwo(float x)
+    private static int RoundDownToPowerOfTwo(int val)
     {
-        if(x < 2) return 2;
-
-        int val = (int)x;
+        if(val < 2) return 2;
 
         val |= val >> 1;
         val |= val >> 2;
@@ -201,7 +242,6 @@ public class SettingsHandler : MonoBehaviour
 
         return val - (val >> 1);
     }
-
 
     private void UpdateAllTextsVisually()
     {

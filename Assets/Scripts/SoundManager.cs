@@ -3,71 +3,87 @@ using UnityEngine.Events;
 
 public enum TypeOfSound
 {
-    def,
-    cool,
-    cooler,
-    coolest
+    Def = 0,
+    Cool = 1,
+    Cooler = 2,
+    Coolest = 3
 }
+
 [System.Serializable]
 public class SoundEvent : UnityEvent<TypeOfSound> { }
+
 public class SoundManager : MonoBehaviour
 {
-    [Header("Sonds")]
+    [Header("Bubble Sounds")]
     [SerializeField] private AudioClip[] bubbleSoundsDef;
     [SerializeField] private AudioClip[] bubbleSoundsCool;
     [SerializeField] private AudioClip[] bubbleSoundsCooler;
     [SerializeField] private AudioClip[] bubbleSoundsCoolest;
+
+    [Header("UI & Game Sounds")]
     [SerializeField] private AudioClip winSound;
     [SerializeField] private AudioClip loseSound;
     [SerializeField] private AudioClip clickSound;
     [SerializeField] private AudioClip whooshSound;
     [SerializeField] private AudioClip warningSound;
 
-    [Header("Other")]
+    [Header("Audio Source")]
     [SerializeField] private AudioSource audioSource;
+
+    private AudioClip[][] _bubbleSoundCategories;
+
+    private void Awake()
+    {
+        _bubbleSoundCategories = new AudioClip[][]
+        {
+            bubbleSoundsDef,
+            bubbleSoundsCool,
+            bubbleSoundsCooler,
+            bubbleSoundsCoolest
+        };
+    }
+
     public void PlayBubbleSoundStatic(int typeIndex)
     {
-        PlayBubbleSound((TypeOfSound)typeIndex);
+        if(typeIndex >= 0 && typeIndex < _bubbleSoundCategories.Length)
+        {
+            PlayBubbleFromCategory(_bubbleSoundCategories[typeIndex]);
+        }
     }
 
     public void PlayBubbleSound(TypeOfSound type)
     {
-        if(type == TypeOfSound.def)
+        int index = (int)type;
+        if(index >= 0 && index < _bubbleSoundCategories.Length)
         {
-            int koof = UnityEngine.Random.Range(0, bubbleSoundsDef.Length);
-            audioSource.PlayOneShot(bubbleSoundsDef[koof]);
-        } else if(type == TypeOfSound.cool)
-        {
-            int koof = UnityEngine.Random.Range(0, bubbleSoundsCool.Length);
-            audioSource.PlayOneShot(bubbleSoundsCool[koof]);
-        } else if(type == TypeOfSound.cooler)
-        {
-            int koof = UnityEngine.Random.Range(0, bubbleSoundsCooler.Length);
-            audioSource.PlayOneShot(bubbleSoundsCooler[koof]);
-        } else if(type == TypeOfSound.coolest)
-        {
-            int koof = UnityEngine.Random.Range(0, bubbleSoundsCoolest.Length);
-            audioSource.PlayOneShot(bubbleSoundsCoolest[koof]);
+            PlayBubbleFromCategory(_bubbleSoundCategories[index]);
         }
     }
-    public void PlayWinSound()
+
+    private void PlayBubbleFromCategory(AudioClip[] clips)
     {
-        audioSource.PlayOneShot(winSound);
+        if(clips == null || clips.Length == 0 || audioSource == null) return;
+
+        int randomIndex = Random.Range(0, clips.Length);
+        AudioClip clip = clips[randomIndex];
+
+        if(clip != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
     }
-    public void PlayLoseSound()
+
+    public void PlayWinSound() => PlayClip(winSound);
+    public void PlayLoseSound() => PlayClip(loseSound);
+    public void PlayClickSound() => PlayClip(clickSound);
+    public void PlayWhooshSound() => PlayClip(whooshSound);
+    public void PlayWarningSound() => PlayClip(warningSound);
+
+    private void PlayClip(AudioClip clip)
     {
-        audioSource.PlayOneShot(loseSound);
-    }
-    public void PlayClickSound()
-    {
-        audioSource.PlayOneShot(clickSound);
-    }
-    public void PlayWhooshSound()
-    {
-        audioSource.PlayOneShot(whooshSound);
-    }
-    public void PlayWarningSound()
-    {
-        audioSource.PlayOneShot(warningSound);
+        if(clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
     }
 }
