@@ -59,6 +59,8 @@ public class SettingsHandler : MonoBehaviour
 
     private void Awake()
     {
+        DOTween.Init(true, true, LogBehaviour.ErrorsOnly).SetCapacity(200, 50);
+
         QualitySettings.vSyncCount = 0;
 
         if(settingsPanel != null)
@@ -79,7 +81,14 @@ public class SettingsHandler : MonoBehaviour
         }
 
         int fps = PlayerPrefs.GetInt("FPS", 60);
-        Application.targetFrameRate = fps;
+        if(fps >= 121)
+        {
+            Application.targetFrameRate = -1;
+        }
+        else
+        {
+            Application.targetFrameRate = fps;
+        }
 
         SetMixerVolume(MixerParameterMaster, PlayerPrefs.GetFloat("MasterVolume", 1.0f));
         SetMixerVolume(MixerParameterSFX, PlayerPrefs.GetFloat("SFXVolume", 1.0f));
@@ -130,12 +139,12 @@ public class SettingsHandler : MonoBehaviour
             if(panel == settingsPanel) pauseEvent?.Invoke(true);
             rect.localScale = Vector3.zero;
             panel.SetActive(true);
-            rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+            rect.DOScale(1f, 0.3f).SetEase(Ease.OutBack);
         }
         else
         {
             if(panel == settingsPanel) pauseEvent?.Invoke(false);
-            rect.DOScale(Vector3.zero, 0.3f)
+            rect.DOScale(0f, 0.3f)
                 .SetEase(Ease.InBack)
                 .OnComplete(onCompleteCallback);
         }
@@ -144,15 +153,27 @@ public class SettingsHandler : MonoBehaviour
     private void OnSettingsHideFinished() => settingsPanel.SetActive(false);
     private void OnInfoHideFinished() => infoPanel.SetActive(false);
 
+    public void OnRowsSlider() => rowsText.SetText("{0}", (int)rowsSlider.value);
+    public void OnColumnsSlider() => columnsText.SetText("{0}", (int)columnsSlider.value);
+    public void OnFPSSlider()
+    {
+        int fpsValue = (int)fpsSlider.value;
+
+        if(fpsValue >= 121)
+        {
+            fpsText.SetText("Unlimited");
+        }
+        else
+        {
+            fpsText.SetText("{0}", fpsValue);
+        }
+    }
+
     public void OnMaxTileSlider()
     {
         int value = RoundDownToPowerOfTwo((int)maxTileSlider.value);
-        maxTileText.SetText("{0}", value);
+        maxTileText.SetText("{0}", value); 
     }
-
-    public void OnRowsSlider() => rowsText.SetText("{0}", (int)rowsSlider.value);
-    public void OnColumnsSlider() => columnsText.SetText("{0}", (int)columnsSlider.value);
-    public void OnFPSSlider() => fpsText.SetText("{0}", (int)fpsSlider.value);
 
     public void OnAnimSlider()
     {
@@ -165,21 +186,21 @@ public class SettingsHandler : MonoBehaviour
     {
         float val = masterVolumeSlider.value;
         SetMixerVolume(MixerParameterMaster, val);
-        masterVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
+        masterVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnSFXVolumeChanged()
     {
         float val = sfxVolumeSlider.value;
         SetMixerVolume(MixerParameterSFX, val);
-        sfxVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
+        sfxVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnBGVolumeChanged()
     {
         float val = bgMusicSlider.value;
         SetMixerVolume(MixerParameterBgMusic, val);
-        bgMusicVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
+        bgMusicVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnChanceOfFxTextChanged() => chanceOfFxTextText.SetText("{0}", (int)chanceOfFxTextSlider.value);
@@ -213,8 +234,14 @@ public class SettingsHandler : MonoBehaviour
         PlayerPrefs.SetInt("Columns", (int)columnsSlider.value);
 
         int fpsValue = (int)fpsSlider.value;
-        Application.targetFrameRate = fpsValue;
-        PlayerPrefs.SetInt("FPS", fpsValue);
+        if(fpsValue >= 121)
+        {
+            Application.targetFrameRate = -1;
+        }
+        else
+        {
+            Application.targetFrameRate = fpsValue;
+        }
 
         PlayerPrefs.SetInt("ChanceOfFxText", (int)chanceOfFxTextSlider.value);
         PlayerPrefs.SetInt("ThresholdComboText", (int)thresholdComboTextSlider.value);
