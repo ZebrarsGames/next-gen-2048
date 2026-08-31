@@ -83,7 +83,7 @@ public class SettingsHandler : MonoBehaviour
         int fps = PlayerPrefs.GetInt("FPS", 60);
         if(fps >= 121)
         {
-            Application.targetFrameRate = -1;
+            Application.targetFrameRate = (int)Screen.currentResolution.refreshRateRatio.value;
         }
         else
         {
@@ -186,21 +186,21 @@ public class SettingsHandler : MonoBehaviour
     {
         float val = masterVolumeSlider.value;
         SetMixerVolume(MixerParameterMaster, val);
-        masterVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
+        masterVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnSFXVolumeChanged()
     {
         float val = sfxVolumeSlider.value;
         SetMixerVolume(MixerParameterSFX, val);
-        sfxVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
+        sfxVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnBGVolumeChanged()
     {
         float val = bgMusicSlider.value;
         SetMixerVolume(MixerParameterBgMusic, val);
-        bgMusicVolumeText.SetText("{0}", Mathf.RoundToInt(val * 100f));
+        bgMusicVolumeText.SetText("{0}%", Mathf.RoundToInt(val * 100f));
     }
 
     public void OnChanceOfFxTextChanged() => chanceOfFxTextText.SetText("{0}", (int)chanceOfFxTextSlider.value);
@@ -236,7 +236,7 @@ public class SettingsHandler : MonoBehaviour
         int fpsValue = (int)fpsSlider.value;
         if(fpsValue >= 121)
         {
-            Application.targetFrameRate = -1;
+            Application.targetFrameRate = (int)Screen.currentResolution.refreshRateRatio.value;
         }
         else
         {

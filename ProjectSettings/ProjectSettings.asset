@@ -147,7 +147,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 1.2.0 public build
+  bundleVersion: 1.2.1 public build
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -274,7 +274,7 @@ PlayerSettings:
   AndroidTargetArchitectures: 2
   AndroidAllowedArchitectures: -1
   AndroidSplashScreenScale: 0
-  androidSplashScreen: {fileID: 2800000, guid: a44d8fb7c99303844a56575f9a23243d, type: 3}
+  androidSplashScreen: {fileID: 0}
   AndroidKeystoreName: "F:/\u041D\u0415 \u0423\u0414\u0410\u041B\u042F\u0422\u042C!/KeyStore
     \u0434\u043B\u044F NextGen2048/user.keystore"
   AndroidKeyaliasName: zebrar's games
